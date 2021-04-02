@@ -52,3 +52,22 @@ func GetAllCat(response http.ResponseWriter, request *http.Request) {
 	}
 	json.NewEncoder(response).Encode(cats)
 }
+
+func CatSlice() []string {
+	var cats []string
+	collection := client.Database("tododatabase").Collection("categories")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		panic(err)
+	}
+	defer cursor.Close(ctx)
+	for cursor.Next(ctx) {
+		var cat Category
+		cursor.Decode(&cat)
+		cats = append(cats, cat.Name)
+	}
+	return cats
+}

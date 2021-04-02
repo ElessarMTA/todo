@@ -31,7 +31,7 @@ func Create(response http.ResponseWriter, request *http.Request) {
 		response.Write([]byte(`{ "message": "` + err.Error() + `"`))
 		return
 	}
-	if todo.Deadline.Time().Sub(todo.CreatedTime.Time()).Hours() < 36 {
+	if dl := TimeParser(todo.Deadline); dl.Sub(TimeParser(todo.CreatedTime)).Hours() < 72 {
 		response.Write([]byte(`"message": "3 günden az kaldı!"`))
 	}
 	json.NewEncoder(response).Encode(result)
@@ -45,28 +45,46 @@ func GetAll(response http.ResponseWriter, request *http.Request) {
 	defer cancel()
 	query := request.URL.Query()
 	fmt.Println(query)
+	fmt.Println(query["title"])
 
+	processes := []string{"inprogress", "done", "waiting"}
+	statuses := []string{"Normal", "Acil"}
+	categories := CatSlice()
+	before := "21 Apr 99 00:00 +03"
+	after := "01 Jan 00 00:00 +03"
+	if len(query) != 0 {
+		if prosl, ex := query["process"]; ex {
+			for _, process := range prosl {
+				processes = append(processes, process)
+			}
+		}
+		if stasl, ex := query["status"]; ex {
+			for _, status := range stasl {
+				statuses = append(statuses, status)
+			}
+		}
+		if catsl, ex := query["category"]; ex {
+			for _, category := range catsl {
+				categories = append(categories, category)
+			}
+		}
+		if befsl, ex := query["before"]; ex {
+				before = befsl[0]
+		}
+		if aftsl, ex := query["after"]; ex {
+				after = aftsl[0]
+		}
+		if exp, ex := query["expired"]; ex {
+			if exp[0] == "true" {
+				before = time.Now().Format(YMDFormat)
+			} else if exp[0] == "false" {
+				after = time.Now().Format(YMDFormat)
+			}
+		}
+	}
 
-	params := "{"
-	i := 1
-	for key, val := range query {
-		if val[0] == "" {
-			continue
-		}
-		params = params + "\"" + key + "\"" + ": " + "\"" + val[0] + "\""
-		if i < len(query) {
-			params += ", "
-		}
-		i++
-	}
-	params += "}"
-	fmt.Println(params)
-	var param interface{}
-	arr := bson.UnmarshalExtJSON([]byte(params), true, &param)
-	if arr != nil {
-		panic(arr)
-	}
-	fmt.Println(param)
+	param := bson.M{"process": bson.M{"$in": processes}, "status": bson.M{"$in": statuses}, "category": bson.M{"$in": categories},
+		"deadline": bson.M{"$lt": before, "$gt": after} }
 
 	cursor, err := collection.Find(ctx, param)
 	if err != nil {
@@ -80,6 +98,7 @@ func GetAll(response http.ResponseWriter, request *http.Request) {
 		cursor.Decode(&person)
 		todos = append(todos, person)
 	}
+
 	if err := cursor.Err(); err != nil {
 		response.WriteHeader(http.StatusInternalServerError)
 		response.Write([]byte(`{ "message": "` + err.Error() + `"`))

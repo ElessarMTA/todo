@@ -13,9 +13,9 @@ type	Todo struct {
 	Category    string             `json:"category,omitempty" bson:"category,omitempty"`
 	Process    string             `json:"process,omitempty" bson:"process,omitempty"`
 	Status    string             `json:"status,omitempty" bson:"status,omitempty"`
-	Deadline    primitive.DateTime             `json:"deadline,omitempty" bson:"deadline,omitempty"`
-	CreatedTime    primitive.DateTime             `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	UpdatedTime    primitive.DateTime             `json:"updatedTime,omitempty" bson:"updatedTime,omitempty"`
+	Deadline    string             `json:"deadline,omitempty" bson:"deadline,omitempty"`
+	CreatedTime    string             `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	UpdatedTime    string             `json:"updatedTime,omitempty" bson:"updatedTime,omitempty"`
 	}
 
 type TodoInput struct {
@@ -34,45 +34,21 @@ func TodoFromInput(input TodoInput) Todo{
 	out.Category = input.Category
 	out.Process = input.Process
 	out.Status = input.Status
-	out.Deadline = primitive.NewDateTimeFromTime(TimeParser(input.Deadline))
+	out.Deadline = input.Deadline
 	return out
 }
 
 func TimeParser(date string) time.Time {
-	a, _ := time.Parse(time.RFC3339, date)
+	a, _ := time.Parse(YMDFormat, date)
 	return a
 }
 
-/*func NewTodo(
-	id primitive.ObjectID,
-	title string,
-	description string,
-	category string,
-	process string,
-	deadline string,
-	createdTime string,
-	updatedTime string,
-	status string,
-) *Todo {
-	return &Todo{
-		ID: id,
-		Title:  title,
-		Description: description,
-		Category: category,
-		Process: process,
-		Deadline: deadline,
-		CreatedTime: createdTime,
-		UpdatedTime: updatedTime,
-		Status: status,
-	}
-}*/
-
 func (x *Todo) SetCTime() {
-	x.CreatedTime = primitive.NewDateTimeFromTime(time.Now())
+	x.CreatedTime = time.Now().Format(YMDFormat)
 }
 
 func (x *Todo) SetUTime() {
-	x.UpdatedTime = primitive.NewDateTimeFromTime(time.Now())
+	x.UpdatedTime = time.Now().Format(YMDFormat)
 }
 
 func (x *Todo) SetStatus() {
